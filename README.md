@@ -14,11 +14,8 @@ browser, in two versions: WebGPU (the reference) and WebGL 2 (the same picture, 
 Open `presets/<name>/webgpu/index.html` in a recent Chrome or Edge, or `presets/<name>/webgl/index.html` in any
 browser with WebGL 2. Nothing to install: each file has everything it needs.
 
-## Licences
+## Licence
 
-- **Code** (the pages' scripts and shaders): [MIT](LICENSE).
-- **Presets** (`preset.json`, the starting values inside the pages, and the preview images and clips published here):
-  [CC BY-NC 4.0](LICENSE-PRESETS.txt) — free to use and adapt with credit to ENPIXELMENT, not for commercial use.
-  What you make with your own settings is yours.
-
-Credit line: *"<name> by ENPIXELMENT"*. Each page also carries these notices in its own source.
+[MIT](LICENSE), for everything here: the code, the shaders and the preset values. Use it, change it, ship it; keep the
+copyright notice. A credit such as *"<name> by ENPIXELMENT"* is appreciated. Each page also carries the notice in its own
+source.

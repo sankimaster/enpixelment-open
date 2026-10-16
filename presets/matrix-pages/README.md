@@ -17,6 +17,5 @@ Buttons: Pause, New seed (a different history), Save PNG.
 
 ## Licence
 
-The code is MIT (`../../LICENSE`). The preset itself — `preset.json`, the starting values inside the pages, and the
-preview images and clips published here — is CC BY-NC 4.0 (`../../LICENSE-PRESETS.txt`): free to use and adapt with
-credit to ENPIXELMENT, not for commercial use. Credit line: *"Matrix Pages by ENPIXELMENT"*. What you make with your own settings is yours.
+MIT (`../../LICENSE`), for everything here: the code, the shaders and the preset values. Use it, change it, ship it;
+keep the copyright notice. A credit such as *"Matrix Pages by ENPIXELMENT"* is appreciated.

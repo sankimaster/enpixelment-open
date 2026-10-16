@@ -27,6 +27,6 @@ presets/<name>/
 
 ## Licence
 
-Decided by the owner on 2026-10-16: **code is MIT** (`LICENSE`), **presets are CC BY-NC 4.0** (`LICENSE-PRESETS.txt`, the
-official text, unchanged; `preset.json` and any images or clips made from it). Each project's README repeats this and
-gives its credit line. Do not change a licence or add a third one without being told.
+Decided by the owner on 2026-10-16: **everything is MIT** (`LICENSE`): code, shaders and preset values alike. A first
+version split the preset out under a non-commercial licence; it was dropped the same day, because a restriction on a
+few numbers could not be defended and helped nobody. Do not add a second licence or a restriction without being told.
