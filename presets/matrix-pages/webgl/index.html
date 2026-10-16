@@ -1,0 +1,1090 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Matrix Pages · WebGL 2</title>
+<meta name="description" content="A grid of tiles. Now and then one rises on an edge and turns over, like a page, into a free neighbour.">
+<style>
+/* ENPIXELMENT public kit — the one stylesheet every public page shares.
+   System fonts, native sliders, one layout: canvas on the left, a 320 px panel on the right
+   (under the canvas on a phone). Edit it here; every page gets it on its next export. */
+
+:root {
+  --bg: #0e0f13;
+  --panel: #15171d;
+  --line: #262a33;
+  --text: #e6e8ee;
+  --muted: #8b91a0;
+  --accent: #6ea8ff;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  height: 100%;
+}
+
+.stage { position: relative; min-width: 0; min-height: 0; }
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+.message {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  padding: 32px;
+  text-align: center;
+  color: var(--muted);
+  max-width: 520px;
+  margin: auto;
+}
+.message[hidden] { display: none; }
+.message a { color: var(--accent); }
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 20px;
+  overflow: auto;
+  background: var(--panel);
+  border-left: 1px solid var(--line);
+}
+
+.head h1 { margin: 0 0 4px; font-size: 16px; font-weight: 600; }
+.head p { margin: 0; color: var(--muted); }
+.badge {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.badge a { color: inherit; }
+
+#controls { display: flex; flex-direction: column; gap: 22px; }
+.group { display: flex; flex-direction: column; gap: 12px; }
+.group h2 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.control {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  align-items: baseline;
+}
+.control output { color: var(--muted); font-variant-numeric: tabular-nums; }
+.control input[type="range"] { grid-column: 1 / -1; width: 100%; margin: 6px 0 0; accent-color: var(--accent); }
+
+.buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+button {
+  padding: 7px 8px;
+  font: inherit;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+}
+button:hover { border-color: var(--muted); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.foot { margin-top: auto; }
+
+/* The one place the brand font is used: the name. Everything else is the system's font. */
+@font-face {
+  font-family: "Enpixelment";
+  src: url("data:font/woff2;base64,d09GMk9UVE8AAALwAAkAAAAABYQAAAKrAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAADYRqBmAAYgE2AiQDKAQGBYIKByAb3QTIngPuriI/wfnrUIMFOaUtGiMWJc+D+thP914YFCp0MeJHRwHJKAlkI7nVNaq64xE9yP7PuPxHNFJDAtH3FgrbxcGJaosrYUYVLocRwYnq16/p3iUbBEcWUEVFmBhVJ+kVjK5sLaA7pzuz+/u2Q8dMlylwvoENxzOqCrGiiAIdWET6vth/dNvvTRH1SGZME263SNnQGXkOvM8+gn+LaAGhbJdDXArmKsdclzbelIGJNlJDpwDbGI8eExMAfA9JFGWted1kdzhdbo/X53/lNB70pqEVQppgPN7M/zSWL6aas7kqgISaBE2EGx9Nc5751lJnXWdPKd6xz45/IHWPfQcKOjW8sDmJHUcUKHyIghZDTYrzxLgkA25dJ6m8KY3HiIzyxAW3i/e/Ww1jPGs/iWxMl7pLrJ3kGA1j/+tMD6OTDuproI4hm3hRY2EecvcgBC9giOEUjS1W7+8o8Cia37KNIP/ejo089CUYE0b931LSQOdk7zSnOsZccVObsz9lDRgy2a5kmK2pIw9Cdik0OMUe49sghpCbCHd825wiNF7z243pfWT9OL5RG/7uZluEKat2D0N0FC5XNTz4EGuB0O2Gx3/9h+rjfr4Ya3EgbjtyPHnrNLd0xGVH/cLAlvmLYO2Nogcal4tiFtAuPQQJNa8hBa7Pao1NEo4SYeZnXAgI46YNiKNDASUxKXlFVc0FUNkjfW9d8H/aWfsTG4Mohw//sLMF51fnjxex0w++tIiht6ffhaezpyKHC1uQgiWnjW3sA0DQnoV6gDmAbYSdCa7BLsH8nbA20tPC+3z0oZC7LmBcREBkrQMjyhK4qGsDbsrcwEOWVOJl/xnAMWJMvzndhgzrNmJKWbde04a0m1DXbcKkfqNGCBnpmXAqIe+FkLtRbCK55pWjUAA=") format("woff2");
+  font-display: swap;
+}
+.wordmark { font-family: "Enpixelment", system-ui, sans-serif; font-size: 16px; letter-spacing: 0.14em; color: var(--muted); opacity: 0.55; }
+
+@media (max-width: 760px) {
+  .app { grid-template-columns: 1fr; grid-template-rows: 56vh auto; height: auto; min-height: 100%; }
+  .panel { border-left: 0; border-top: 1px solid var(--line); }
+}
+</style>
+</head>
+<body>
+<!-- Generated from the ENPIXELMENT sources (public-export). Edit those, not this file. -->
+<!--
+MIT License
+
+Copyright (c) 2026 Valentin Valcu (ENPIXELMENT)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+The preset values in this page (VALUES in the script) are CC BY-NC 4.0, (c) 2026 ENPIXELMENT:
+https://creativecommons.org/licenses/by-nc/4.0/ — credit line: "Matrix Pages by ENPIXELMENT".
+-->
+<div class="app">
+  <main class="stage">
+    <canvas id="view"></canvas>
+    <div class="message" id="message" hidden></div>
+  </main>
+  <aside class="panel">
+    <header class="head">
+      <h1>Matrix Pages</h1>
+      <p>A grid of tiles. Now and then one rises on an edge and turns over, like a page, into a free neighbour.</p>
+      <span class="badge">WebGL 2 · <a href="../webgpu/index.html">WebGPU version</a></span>
+    </header>
+    <div id="controls"></div>
+    <div class="buttons" id="buttons"></div>
+    <footer class="foot"><span class="wordmark">ENPIXELMENT</span></footer>
+  </aside>
+</div>
+<script>
+// ENPIXELMENT public kit — the panel every public page shares.
+//
+// `mountPanel` turns a list of controls into native range sliders, in groups, and a row of
+// buttons. It knows nothing about the effect: a page hands it `values` (the object the player
+// reads every frame) and gets `onChange` back when a slider moves.
+
+function decimalsOf(step) {
+  const s = String(step);
+  const dot = s.indexOf('.');
+  return dot < 0 ? 0 : s.length - dot - 1;
+}
+
+function mountPanel({ groups, values, buttons, onChange }) {
+  const root = document.getElementById('controls');
+  const outputs = {};
+
+  for (const group of groups) {
+    const section = document.createElement('section');
+    section.className = 'group';
+    const title = document.createElement('h2');
+    title.textContent = group.title;
+    section.append(title);
+
+    for (const c of group.controls) {
+      const row = document.createElement('div');
+      row.className = 'control';
+      const label = document.createElement('label');
+      label.htmlFor = 'ctl-' + c.id;
+      label.textContent = c.label;
+      const out = document.createElement('output');
+      out.htmlFor = 'ctl-' + c.id;
+      const input = document.createElement('input');
+      input.type = 'range';
+      input.id = 'ctl-' + c.id;
+      input.min = c.min;
+      input.max = c.max;
+      input.step = c.step;
+      input.value = values[c.id];
+      const decimals = decimalsOf(c.step);
+      const show = () => { out.textContent = Number(values[c.id]).toFixed(decimals); };
+      input.addEventListener('input', () => {
+        values[c.id] = Number(input.value);
+        show();
+        if (onChange) onChange(c.id);
+      });
+      outputs[c.id] = { input, show };
+      show();
+      row.append(label, out, input);
+      section.append(row);
+    }
+    root.append(section);
+  }
+
+  const bar = document.getElementById('buttons');
+  const made = {};
+  for (const b of buttons) {
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.textContent = b.label;
+    el.addEventListener('click', () => b.onClick(el));
+    bar.append(el);
+    made[b.id] = el;
+  }
+
+  return {
+    buttons: made,
+    /** Move a slider from code and refresh its number. */
+    set(id, value) {
+      values[id] = value;
+      outputs[id].input.value = value;
+      outputs[id].show();
+    },
+  };
+}
+
+function showMessage(html) {
+  const el = document.getElementById('message');
+  el.innerHTML = html;
+  el.hidden = false;
+}
+
+/** Download the canvas as a PNG. Call it in the same task as the draw: a WebGPU or WebGL canvas
+ *  only holds its picture until the browser presents it. */
+function savePng(canvas, name) {
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }, 'image/png');
+}
+</script>
+<script type="module">
+const WEBGPU_HINT = ', or open the <a href="../webgpu/index.html">WebGPU version</a>';
+
+// ── Generated: the table and the preset ──
+const ID = 'matrix-pages';
+
+// Where each uniform sits in the buffer, in floats; GPU_VALUES are the ones copied from `values`.
+const UNIFORM_FLOATS = 16;
+const U = {
+  "resolution": 0,
+  "cols": 4,
+  "gap": 5,
+  "radius": 6,
+  "flipHue": 7,
+  "flipRange": 8,
+  "flipShadow": 9,
+  "flipLift": 10,
+  "rows": 11,
+  "cellPx": 12,
+  "origin": 14
+};
+const GPU_VALUES = [
+  "cols",
+  "gap",
+  "radius",
+  "flipHue",
+  "flipRange",
+  "flipShadow",
+  "flipLift"
+];
+
+// The Pages preset: every kept parameter, at the value the preset gives it.
+// These values are CC BY-NC 4.0 (see the notice at the top of the page).
+const VALUES = {
+  "cols": 30,
+  "gap": 0.14,
+  "radius": 0.18,
+  "flipDensity": 0.35,
+  "flipRate": 0.35,
+  "flipDuration": 0.8,
+  "flipRecolor": 0.6,
+  "flipHue": 0.08,
+  "flipRange": 0.55,
+  "flipShadow": 0.7,
+  "flipLift": 0.18,
+  "simSpeed": 1,
+  "seed": 1
+};
+
+const GROUPS = [
+  {
+    "title": "Grid",
+    "controls": [
+      {
+        "id": "cols",
+        "label": "Columns",
+        "min": 8,
+        "max": 96,
+        "step": 1
+      },
+      {
+        "id": "gap",
+        "label": "Gap between cells",
+        "min": 0,
+        "max": 0.6,
+        "step": 0.01
+      },
+      {
+        "id": "radius",
+        "label": "Corner rounding",
+        "min": 0,
+        "max": 0.5,
+        "step": 0.01
+      }
+    ]
+  },
+  {
+    "title": "Motion",
+    "controls": [
+      {
+        "id": "flipDensity",
+        "label": "Density (occupied cells)",
+        "min": 0.05,
+        "max": 0.85,
+        "step": 0.01
+      },
+      {
+        "id": "flipRate",
+        "label": "Flip rate (per tile / s)",
+        "min": 0.02,
+        "max": 2,
+        "step": 0.01
+      },
+      {
+        "id": "simSpeed",
+        "label": "Speed",
+        "min": 0,
+        "max": 3,
+        "step": 0.01
+      }
+    ]
+  },
+  {
+    "title": "Colour",
+    "controls": [
+      {
+        "id": "flipHue",
+        "label": "Base hue",
+        "min": 0,
+        "max": 1,
+        "step": 0.01
+      },
+      {
+        "id": "flipRange",
+        "label": "Colour range",
+        "min": 0,
+        "max": 1.2,
+        "step": 0.01
+      },
+      {
+        "id": "flipShadow",
+        "label": "Shadow",
+        "min": 0,
+        "max": 1,
+        "step": 0.01
+      }
+    ]
+  }
+];
+
+// The WGSL shader, translated to GLSL ES 3.00 by naga; the names are the translator's.
+
+const VERT = `#version 300 es
+
+precision highp float;
+precision highp int;
+
+struct Uniforms {
+    vec2 resolution;
+    float unused_1_;
+    float unused_2_;
+    float cols;
+    float gap;
+    float radius;
+    float flipHue;
+    float flipRange;
+    float flipShadow;
+    float flipLift;
+    float rows;
+    float cellPx;
+    float _pad_52_;
+    vec2 origin;
+};
+struct Ctx {
+    vec2 g;
+    vec2 cell;
+    vec2 local;
+    vec2 grid;
+    float aa;
+    vec3 bg;
+};
+const float PI = 3.1415927;
+
+
+vec3 hsv2rgb(vec3 c) {
+    vec4 K = vec4(1.0, 0.6666667, 0.33333334, 3.0);
+    vec3 p_2 = abs(((fract((c.xxx + K.xyz)) * 6.0) - K.www));
+    return (c.z * mix(K.xxx, clamp((p_2 - K.xxx), vec3(0.0), vec3(1.0)), c.y));
+}
+
+float sd_rounded_box(vec2 p_1, vec2 b, float r) {
+    float rc = min(r, min(b.x, b.y));
+    vec2 q = ((abs(p_1) - b) + vec2(rc));
+    return ((length(max(q, vec2(0.0))) + min(max(q.x, q.y), 0.0)) - rc);
+}
+
+vec3 pal(float t) {
+    vec3 _e5 = hsv2rgb(vec3(fract(t), 0.75, 1.0));
+    return _e5;
+}
+
+float cover(float d, float aa) {
+    return (1.0 - smoothstep(-(aa), aa, d));
+}
+
+float in_grid(Ctx c_1) {
+    bool local = false;
+    if (all(greaterThanEqual(c_1.cell, vec2(0.0)))) {
+        local = all(lessThan(c_1.cell, c_1.grid));
+    } else {
+        local = false;
+    }
+    bool _e13 = local;
+    return (_e13 ? 1.0 : 0.0);
+}
+
+void main() {
+    uint vi = uint(gl_VertexID);
+    vec2 p[3] = vec2[3](vec2(-1.0, -1.0), vec2(3.0, -1.0), vec2(-1.0, 3.0));
+    vec2 _e13 = p[vi];
+    gl_Position = vec4(_e13, 0.0, 1.0);
+    gl_Position.yz = vec2(-gl_Position.y, gl_Position.z * 2.0 - gl_Position.w);
+    return;
+}
+`;
+
+const FRAG = `#version 300 es
+
+precision highp float;
+precision highp int;
+
+struct Uniforms {
+    vec2 resolution;
+    float unused_1_;
+    float unused_2_;
+    float cols;
+    float gap;
+    float radius;
+    float flipHue;
+    float flipRange;
+    float flipShadow;
+    float flipLift;
+    float rows;
+    float cellPx;
+    float _pad_52_;
+    vec2 origin;
+};
+struct Ctx {
+    vec2 g;
+    vec2 cell;
+    vec2 local;
+    vec2 grid;
+    float aa;
+    vec3 bg;
+};
+const float PI = 3.1415927;
+
+layout(std140) uniform Uniforms_block_0Fragment { Uniforms _group_0_binding_0_fs; };
+
+uniform highp sampler2D _group_0_binding_1_fs;
+
+layout(location = 0) out vec4 _fs2p_location0;
+
+vec3 hsv2rgb(vec3 c) {
+    vec4 K = vec4(1.0, 0.6666667, 0.33333334, 3.0);
+    vec3 p_2 = abs(((fract((c.xxx + K.xyz)) * 6.0) - K.www));
+    return (c.z * mix(K.xxx, clamp((p_2 - K.xxx), vec3(0.0), vec3(1.0)), c.y));
+}
+
+float sd_rounded_box(vec2 p_1, vec2 b, float r) {
+    float rc = min(r, min(b.x, b.y));
+    vec2 q = ((abs(p_1) - b) + vec2(rc));
+    return ((length(max(q, vec2(0.0))) + min(max(q.x, q.y), 0.0)) - rc);
+}
+
+vec3 pal(float t) {
+    vec3 _e5 = hsv2rgb(vec3(fract(t), 0.75, 1.0));
+    return _e5;
+}
+
+float cover(float d, float aa) {
+    return (1.0 - smoothstep(-(aa), aa, d));
+}
+
+float in_grid(Ctx c_1) {
+    bool local = false;
+    if (all(greaterThanEqual(c_1.cell, vec2(0.0)))) {
+        local = all(lessThan(c_1.cell, c_1.grid));
+    } else {
+        local = false;
+    }
+    bool _e13 = local;
+    return (_e13 ? 1.0 : 0.0);
+}
+
+float tile(Ctx c_2, float scale) {
+    float _e4 = _group_0_binding_0_fs.gap;
+    float h = max(((0.5 - (_e4 * 0.5)) * scale), 0.001);
+    float _e16 = _group_0_binding_0_fs.radius;
+    float _e17 = sd_rounded_box(c_2.local, vec2(h), _e16);
+    float _e19 = cover(_e17, c_2.aa);
+    float _e20 = in_grid(c_2);
+    return (_e19 * _e20);
+}
+
+int cell_slot(vec2 cell) {
+    bool local_1 = false;
+    bool local_2 = false;
+    bool local_3 = false;
+    if (!((cell.x < -1.0))) {
+        local_1 = (cell.y < -1.0);
+    } else {
+        local_1 = true;
+    }
+    bool _e11 = local_1;
+    if (!(_e11)) {
+        float _e18 = _group_0_binding_0_fs.cols;
+        local_2 = (cell.x > _e18);
+    } else {
+        local_2 = true;
+    }
+    bool _e21 = local_2;
+    if (!(_e21)) {
+        float _e28 = _group_0_binding_0_fs.rows;
+        local_3 = (cell.y > _e28);
+    } else {
+        local_3 = true;
+    }
+    bool _e31 = local_3;
+    if (_e31) {
+        return -1;
+    }
+    float _e39 = _group_0_binding_0_fs.cols;
+    return ((((int(cell.y) + 1) * (int(_e39) + 2)) + int(cell.x)) + 1);
+}
+
+vec4 cell_texel(uint i) {
+    uvec2 dims = uvec2(textureSize(_group_0_binding_1_fs, 0).xy);
+    if ((i >= (dims.x * dims.y))) {
+        return vec4(0.0);
+    }
+    vec4 _e16 = texelFetch(_group_0_binding_1_fs, ivec2(uvec2((i % dims.x), (i / dims.x))), 0);
+    return _e16;
+}
+
+vec4 cell_a(vec2 cell_1) {
+    int _e1 = cell_slot(cell_1);
+    if ((_e1 < 0)) {
+        return vec4(0.0);
+    }
+    vec4 _e9 = cell_texel((uint(_e1) * 2u));
+    return _e9;
+}
+
+vec4 cell_b(vec2 cell_2) {
+    int _e1 = cell_slot(cell_2);
+    if ((_e1 < 0)) {
+        return vec4(0.0);
+    }
+    vec4 _e11 = cell_texel(((uint(_e1) * 2u) + 1u));
+    return _e11;
+}
+
+vec3 algo_flip(Ctx c_3) {
+    vec3 col = vec3(0.0);
+    bool local_4 = false;
+    int dy = -1;
+    int dx = 0;
+    bool local_5 = false;
+    float face = 0.0;
+    float _e3 = _group_0_binding_0_fs.gap;
+    float lp = ((1.0 - _e3) * 0.9);
+    float grad = (1.06 - (0.12 * (c_3.local.y + 0.5)));
+    float _e22 = tile(c_3, 1.0);
+    col = mix(c_3.bg, vec3(0.095, 0.105, 0.135), _e22);
+    vec4 _e26 = cell_a(c_3.cell);
+    if ((_e26.x > 0.5)) {
+        local_4 = (_e26.x < 1.5);
+    } else {
+        local_4 = false;
+    }
+    bool _e36 = local_4;
+    if (_e36) {
+        vec3 _e37 = col;
+        float _e40 = _group_0_binding_0_fs.flipHue;
+        float _e44 = _group_0_binding_0_fs.flipRange;
+        vec3 _e47 = pal((_e40 + (_e26.y * _e44)));
+        float _e50 = tile(c_3, 0.9);
+        col = mix(_e37, (_e47 * grad), _e50);
+    }
+    bool loop_init = true;
+    while(true) {
+        if (!loop_init) {
+            int _e201 = dy;
+            dy = (_e201 + 1);
+        }
+        loop_init = false;
+        int _e54 = dy;
+        if ((_e54 <= 1)) {
+        } else {
+            break;
+        }
+        {
+            dx = -1;
+            bool loop_init_1 = true;
+            while(true) {
+                if (!loop_init_1) {
+                    int _e198 = dx;
+                    dx = (_e198 + 1);
+                }
+                loop_init_1 = false;
+                int _e59 = dx;
+                if ((_e59 <= 1)) {
+                } else {
+                    break;
+                }
+                {
+                    int _e63 = dx;
+                    int _e65 = dy;
+                    vec2 sc = (c_3.cell + vec2(float(_e63), float(_e65)));
+                    vec4 _e69 = cell_a(sc);
+                    if (!((_e69.x < 1.5))) {
+                        local_5 = (_e69.x > 2.5);
+                    } else {
+                        local_5 = true;
+                    }
+                    bool _e80 = local_5;
+                    if (_e80) {
+                        continue;
+                    }
+                    vec4 _e81 = cell_b(sc);
+                    vec2 dir = _e81.xy;
+                    vec2 perp = vec2(-(dir.y), dir.x);
+                    vec2 rel = (c_3.g - (sc + vec2(0.5)));
+                    float e = smoothstep(0.0, 1.0, _e69.w);
+                    float th = (PI * e);
+                    float ct = cos(th);
+                    float st = sin(th);
+                    float hinge = mix((lp * 0.5), (1.0 - (lp * 0.5)), e);
+                    float mid = (hinge - ((0.5 * lp) * ct));
+                    float _e113 = _group_0_binding_0_fs.flipLift;
+                    float sz = (1.0 + (_e113 * st));
+                    float hl = max((((0.5 * lp) * abs(ct)) * sz), 0.0005);
+                    float hw = ((0.5 * lp) * sz);
+                    vec2 rs = (rel - (vec2(0.1, 0.14) * st));
+                    float _e142 = _group_0_binding_0_fs.radius;
+                    float _e143 = sd_rounded_box(vec2((dot(rs, dir) - mid), dot(rs, perp)), vec2((hl + (0.2 * st)), hw), _e142);
+                    float blur = (0.02 + (0.1 * st));
+                    vec3 _e148 = col;
+                    float _e151 = _group_0_binding_0_fs.flipShadow;
+                    col = (_e148 * (1.0 - (((0.6 * _e151) * st) * (1.0 - smoothstep(-(blur), blur, _e143)))));
+                    float _e170 = _group_0_binding_0_fs.radius;
+                    float _e171 = sd_rounded_box(vec2((dot(rel, dir) - mid), dot(rel, perp)), vec2(hl, hw), _e170);
+                    face = _e69.y;
+                    if ((ct < 0.0)) {
+                        face = _e69.z;
+                    }
+                    float shade = (grad * mix(0.72, 1.0, abs(ct)));
+                    vec3 _e182 = col;
+                    float _e185 = _group_0_binding_0_fs.flipHue;
+                    float _e186 = face;
+                    float _e189 = _group_0_binding_0_fs.flipRange;
+                    vec3 _e192 = pal((_e185 + (_e186 * _e189)));
+                    float _e195 = cover(_e171, c_3.aa);
+                    col = mix(_e182, (_e192 * shade), _e195);
+                }
+            }
+        }
+    }
+    vec3 _e203 = col;
+    return _e203;
+}
+
+void main() {
+    vec4 pos = gl_FragCoord;
+    float _e5 = _group_0_binding_0_fs.resolution.y;
+    vec2 _e11 = _group_0_binding_0_fs.origin;
+    float _e15 = _group_0_binding_0_fs.cellPx;
+    vec2 g = ((vec2(pos.x, (_e5 - pos.y)) - _e11) / vec2(_e15));
+    float _e20 = _group_0_binding_0_fs.cols;
+    float _e23 = _group_0_binding_0_fs.rows;
+    vec2 grid = vec2(_e20, _e23);
+    float _e32 = _group_0_binding_0_fs.cellPx;
+    Ctx c_4 = Ctx(g, floor(g), (fract(g) - vec2(0.5)), grid, (1.0 / _e32), vec3(0.055, 0.06, 0.075));
+    vec3 _e40 = algo_flip(c_4);
+    _fs2p_location0 = vec4(clamp(_e40, vec3(0.0), vec3(1.0)), 1.0);
+    return;
+}
+`;
+
+const UNIFORM_BLOCK = 'Uniforms_block_0Fragment';
+
+const CELLS_SAMPLER = '_group_0_binding_1_fs';
+
+// ── The simulation ──
+// Which tiles stand where, which are turning over, and in what colour — decided here, on the CPU,
+// and handed to the shader once a frame. A seed is a history: the same seed and the same steps
+// give the same picture.
+
+// A seeded random stream: one seed, one history.
+function hashKey(...parts) {
+  let h = 2166136261 >>> 0;
+  for (const p of parts) {
+    h ^= p >>> 0;
+    h = Math.imul(h, 16777619) >>> 0;
+    h ^= h >>> 13;
+  }
+  return h >>> 0;
+}
+
+function makeRng(a) {
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Floats per cell in the buffer: two `vec4f` (see `cell_a` / `cell_b` in the shader). */
+const CELL_FLOATS = 8;
+/** Rows simulated per column, as a multiple of the column count: frames up to 1 : 2 (tall) fit. */
+const SIM_ASPECT = 2;
+const MAX_COLS = 96;
+/**
+ * Cells of simulated grid kept around the frame's grid on every side. A tile that waits there can
+ * turn INTO the frame, so one enters from beyond the edge instead of appearing in place;
+ * the shader draws it only while it moves (a resting tile out there is never seen). The simulation
+ * therefore has `cols + 2 × RING` columns, and the shader's lookup knows the same offset.
+ */
+const RING = 1;
+/** The most cells any grid holds: what the storage buffer is sized for. */
+const MAX_CELLS = (MAX_COLS + 2 * RING) * (MAX_COLS + 2 * RING) * SIM_ASPECT;
+
+const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+/**
+ * How the grid sits in a frame: WHOLE square cells on both axes, centred. `rows` is the count that
+ * fits the frame's shape best, the cell is the largest that holds `cols × rows` inside the frame, and
+ * what is left over is split evenly on both sides — so no cell is ever cut by an edge, and the margins
+ * (under a cell on the longer axis, none on the other when the shape matches) are the same each side.
+ */
+function gridFit(width, height, cols) {
+  const rows = Math.max(1, Math.round((cols * height) / width));
+  const cell = Math.min(width / cols, height / rows);
+  return { rows, cell, ox: (width - cols * cell) / 2, oy: (height - rows * cell) / 2 };
+}
+
+/** Rows a grid of `cols` columns holds. */
+function simRows(cols) {
+  return Math.min(Math.ceil(cols * SIM_ASPECT), Math.floor(MAX_CELLS / cols));
+}
+
+/** The occupancy bookkeeping both simulations share: which cells hold a tile, in which colour. */
+function createGrid(cols, rows, rng, p) {
+  const n = cols * rows;
+  /** 0 empty · 1 a resting tile · 2 reserved by a move in progress */
+  const occ = new Uint8Array(n);
+  /** a tile's place on the palette, 0..1 */
+  const idx = new Float32Array(n);
+  let pieces = 0;
+
+  /** Bring the tile count to the density asked for; `tries` bounds the work per frame. */
+  function fill(density, tries) {
+    const target = Math.round(n * density);
+    for (let t = 0; t < tries && pieces !== target; t++) {
+      const i = (rng() * n) | 0;
+      if (pieces < target && occ[i] === 0) { occ[i] = 1; idx[i] = rng(); pieces++; }
+      else if (pieces > target && occ[i] === 1) { occ[i] = 0; pieces--; }
+    }
+  }
+
+  fill(p.density, n * 10);
+  return { n, occ, idx, fill };
+}
+
+/** Pages: a tile stands on one edge and turns over into a free neighbour, like a page of a book. */
+function createFlipSim(cols, rows, rng, p0) {
+  const g = createGrid(cols, rows, rng, p0);
+  const { occ, idx } = g;
+  const moves = [];
+
+  return {
+    cells: g.n,
+    step(dt, p) {
+      const dur = Math.max(p.duration, 0.05);
+      for (let m = moves.length - 1; m >= 0; m--) {
+        const mv = moves[m];
+        mv.t += dt / dur;
+        if (mv.t >= 1) {
+          occ[mv.from] = 0;
+          occ[mv.to] = 1;
+          idx[mv.to] = mv.toIdx;
+          moves.splice(m, 1);
+        }
+      }
+      g.fill(p.density, 80);
+
+      const pStart = 1 - Math.exp(-p.rate * dt);
+      if (pStart <= 0) return;
+      for (let i = 0; i < g.n; i++) {
+        if (occ[i] !== 1 || rng() >= pStart) continue;
+        const d = DIRS[(rng() * 4) | 0];
+        const x = (i % cols) + d[0];
+        const y = ((i / cols) | 0) + d[1];
+        if (x < 0 || y < 0 || x >= cols || y >= rows) continue;
+        const j = y * cols + x;
+        if (occ[j] !== 0) continue;  // the destination is taken: the tile stays
+        occ[i] = 2;
+        occ[j] = 2;
+        moves.push({ from: i, to: j, dx: d[0], dy: d[1], t: 0, toIdx: rng() < p.recolor ? rng() : idx[i] });
+      }
+    },
+    write(out) {
+      out.fill(0, 0, g.n * CELL_FLOATS);
+      for (let i = 0; i < g.n; i++) {
+        if (occ[i] === 1) { out[i * CELL_FLOATS] = 1; out[i * CELL_FLOATS + 1] = idx[i]; }
+      }
+      for (const mv of moves) {
+        const a = mv.from * CELL_FLOATS;
+        out[a] = 2;
+        out[a + 1] = idx[mv.from];
+        out[a + 2] = mv.toIdx;
+        out[a + 3] = mv.t;
+        out[a + 4] = mv.dx;
+        out[a + 5] = mv.dy;
+        out[mv.to * CELL_FLOATS] = 3;
+      }
+    },
+  };
+}
+
+/** A fresh simulation on `cols` columns, drawing from the stream `seed` names. */
+function createSim(cols, seed, p) {
+  const rng = makeRng(hashKey(seed, cols, 1));
+  return createFlipSim(cols, simRows(cols), rng, p);
+}
+
+// ── The player, the part both backends share ──
+// Everything above this line is generated; from here down is the page's own code. The WebGPU and
+// WebGL pages differ only in how they hand the uniforms and the cells to the GPU (below this).
+
+const canvas = document.getElementById('view');
+const values = { ...VALUES };
+
+/** The panel's numbers for the simulation, as it reads them. */
+function simParams(v) {
+  return { density: v.flipDensity, rate: v.flipRate, duration: v.flipDuration, recolor: v.flipRecolor };
+}
+
+/** The longest step one frame integrates, in real seconds: a tab that slept does not fast-forward. */
+const MAX_STEP = 0.1;
+const sim = { current: null, key: '', last: -1, cols: 0 };
+/** One cell is two RGBA texels (CELL_FLOATS floats); rounded up to whole rows of a 1024-texel texture. */
+const CELL_TEX_WIDTH = 1024;
+const cellData = new Float32Array(Math.ceil((MAX_CELLS * CELL_FLOATS) / (CELL_TEX_WIDTH * 4)) * CELL_TEX_WIDTH * 4);
+let paused = false;
+let savePending = false;
+
+function advance(time) {
+  // The simulation holds a ring of cells beyond the frame's grid (RING).
+  const key = `${values.seed}|${values.cols}`;
+  if (key !== sim.key || sim.current === null) {
+    sim.cols = values.cols + 2 * RING;
+    sim.current = createSim(sim.cols, values.seed, simParams(values));
+    sim.key = key;
+  }
+  const dt = sim.last < 0 || paused ? 0 : Math.min(Math.max(time - sim.last, 0), MAX_STEP);
+  sim.last = time;
+  const s = dt * values.simSpeed;
+  if (s > 0) sim.current.step(s, simParams(values));
+}
+
+function mountControls() {
+  mountPanel({
+    groups: GROUPS,
+    values,
+    buttons: [
+      {
+        id: 'pause',
+        label: 'Pause',
+        onClick(el) { paused = !paused; el.textContent = paused ? 'Play' : 'Pause'; },
+      },
+      {
+        id: 'seed',
+        label: 'New seed',
+        onClick() { values.seed = Math.floor(Math.random() * 10000); },
+      },
+      { id: 'save', label: 'Save PNG', onClick() { savePending = true; } },
+    ],
+  });
+}
+
+/**
+ * The canvas's size in device pixels, kept within what the GPU can make. One factor shrinks both sides,
+ * so the picture keeps its shape: clamping each side alone would turn the square tiles into rectangles.
+ */
+function fitCanvas(maxSide) {
+  const dpr = window.devicePixelRatio || 1;
+  const wanted = Math.max(1, canvas.clientWidth * dpr, canvas.clientHeight * dpr);
+  const k = Math.min(1, maxSide / wanted);
+  const width = Math.max(1, Math.round(canvas.clientWidth * dpr * k));
+  const height = Math.max(1, Math.round(canvas.clientHeight * dpr * k));
+  if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
+  return { width, height };
+}
+
+/** Set by a backend when it cannot go on (a lost GPU, a failed frame): the loop stops asking for frames. */
+let stopped = false;
+
+/**
+ * Run `draw` every frame until something stops it; an error ends the loop and says so. Time starts at 0 on
+ * the FIRST frame, not when the page was set up: the simulation reacts to tiny differences in its time
+ * steps, so a clock that began at an arbitrary moment would give the same seed a different history.
+ */
+function runLoop(draw) {
+  let first = null;
+  function frame(now) {
+    if (stopped) return;
+    if (first === null) first = now;
+    try {
+      draw((now - first) / 1000);
+    } catch (err) {
+      stopped = true;
+      showMessage('Something went wrong: ' + (err && err.message ? err.message : err) + '<br><a href="">Reload</a>');
+      return;
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+/**
+ * One frame's state: advance the simulation, fill `uniforms`, put the cells in `cellData`.
+ * Returns how many floats of `cellData` the frame uses.
+ */
+function prepareFrame(time, width, height, uniforms) {
+  advance(time);
+
+  // The grid in the frame: whole square cells, centred.
+  const fit = gridFit(width, height, values.cols);
+  for (const id of GPU_VALUES) uniforms[U[id]] = values[id];
+  uniforms[U.resolution] = width;
+  uniforms[U.resolution + 1] = height;
+  uniforms[U.rows] = fit.rows;
+  uniforms[U.cellPx] = fit.cell;
+  uniforms[U.origin] = fit.ox;
+  uniforms[U.origin + 1] = fit.oy;
+
+  // The frame shows the top `rows` of the simulated grid and the ring around it; rows past the
+  // simulated grid stay empty.
+  const wanted = Math.min((fit.rows + 2 * RING) * sim.cols, MAX_CELLS);
+  const have = Math.min(simRows(sim.cols) * sim.cols, wanted);
+  sim.current.write(cellData);
+  cellData.fill(0, have * CELL_FLOATS, wanted * CELL_FLOATS);
+  return wanted * CELL_FLOATS;
+}
+
+/** Call it in the same task as the draw, so the canvas still holds the picture. */
+function afterDraw(width, height) {
+  if (!savePending) return;
+  savePending = false;
+  savePng(canvas, `${ID}-${width}x${height}.png`);
+}
+
+// ── The WebGL 2 backend ──
+// The same picture as the WebGPU page: the shader is the same WGSL, translated to GLSL. The one
+// difference in how data travels is the cells: WebGL 2 has no storage buffer, so they go in a
+// float texture, two texels (RGBA32F) per cell, which the shader reads with texelFetch.
+
+function compile(gl, type, source) {
+  const shader = gl.createShader(type);
+  gl.shaderSource(shader, source);
+  gl.compileShader(shader);
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(shader));
+  return shader;
+}
+
+function main() {
+  const gl = canvas.getContext('webgl2', { alpha: false, antialias: false });
+  if (!gl) {
+    showMessage('This browser has no WebGL 2' + WEBGPU_HINT + '.');
+    return;
+  }
+
+  const program = gl.createProgram();
+  gl.attachShader(program, compile(gl, gl.VERTEX_SHADER, VERT));
+  gl.attachShader(program, compile(gl, gl.FRAGMENT_SHADER, FRAG));
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
+  gl.useProgram(program);
+
+  const uniforms = new Float32Array(UNIFORM_FLOATS);
+  const ubo = gl.createBuffer();
+  gl.bindBuffer(gl.UNIFORM_BUFFER, ubo);
+  gl.bufferData(gl.UNIFORM_BUFFER, uniforms.byteLength, gl.DYNAMIC_DRAW);
+  gl.uniformBlockBinding(program, gl.getUniformBlockIndex(program, UNIFORM_BLOCK), 0);
+  gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, ubo);
+
+  const texRows = cellData.length / (CELL_TEX_WIDTH * 4);
+  const texture = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA32F, CELL_TEX_WIDTH, texRows);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.uniform1i(gl.getUniformLocation(program, CELLS_SAMPLER), 0);
+
+  // The vertex shader makes its triangle from gl_VertexID: no buffers, but WebGL 2 wants a vertex array.
+  gl.bindVertexArray(gl.createVertexArray());
+
+  mountControls();
+
+  // A lost context (a GPU reset, a tab sent to the background on a phone) takes every buffer and texture with
+  // it. The page says so and offers a reload rather than staying blank.
+  canvas.addEventListener('webglcontextlost', (event) => {
+    event.preventDefault();
+    stopped = true;
+    showMessage('The graphics context was lost.<br><a href="">Reload</a>');
+  });
+
+  runLoop((time) => {
+    const { width, height } = fitCanvas(gl.getParameter(gl.MAX_TEXTURE_SIZE));
+    const floats = prepareFrame(time, width, height, uniforms);
+    gl.viewport(0, 0, width, height);
+
+    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, uniforms);
+    // Only the rows of the texture the frame uses.
+    const rows = Math.max(1, Math.ceil(floats / (CELL_TEX_WIDTH * 4)));
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, CELL_TEX_WIDTH, rows, gl.RGBA, gl.FLOAT, cellData, 0);
+
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+    afterDraw(width, height);
+  });
+}
+
+try {
+  main();
+} catch (err) {
+  showMessage('Something went wrong: ' + (err && err.message ? err.message : err));
+}
+</script>
+</body>
+</html>

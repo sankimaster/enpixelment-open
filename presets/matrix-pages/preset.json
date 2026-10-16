@@ -1,0 +1,18 @@
+{
+  "name": "Pages",
+  "params": {
+    "cols": 30,
+    "gap": 0.14,
+    "radius": 0.18,
+    "flipDensity": 0.35,
+    "flipRate": 0.35,
+    "flipDuration": 0.8,
+    "flipRecolor": 0.6,
+    "flipHue": 0.08,
+    "flipRange": 0.55,
+    "flipShadow": 0.7,
+    "flipLift": 0.18,
+    "simSpeed": 1,
+    "seed": 1
+  }
+}
